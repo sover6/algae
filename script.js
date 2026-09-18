@@ -246,9 +246,11 @@
 
   /* ---------------------------------------------------------------
      Scroll-driven algae morph: a single organic shape that smoothly
-     reshapes from a single cell, to a colony, to a cultivated culture
-     as the user scrolls through a tall sticky section — literally
-     "changing" as you scroll, rather than just drifting.
+     reshapes from a single cell, to a colony, to a coiled Spirulina
+     filament as the user scrolls through a tall sticky section —
+     literally "changing" as you scroll, rather than just drifting.
+     Each stage is stored as a raw point array (not a radius profile),
+     so the final stage can be an elongated coil rather than a blob.
   ----------------------------------------------------------------*/
   var section = document.getElementById("morph");
   var pathEl = document.getElementById("morphPath");
@@ -261,42 +263,56 @@
   if (!section || !pathEl) return;
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var CX = 300, CY = 300, BASE = 175, POINTS = 16;
-
-  function stageRadii(stage) {
-    var radii = [];
-    for (var i = 0; i < POINTS; i++) {
-      var angle = (i / POINTS) * Math.PI * 2;
-      var r;
-      if (stage === 0) {
-        r = BASE + 10 * Math.sin(angle * 2);
-      } else if (stage === 1) {
-        r = BASE * 0.95 + 38 * Math.sin(angle * 5);
-      } else {
-        r = BASE * 1.05 + 58 * Math.sin(angle * 3 + 0.6) + 26 * Math.cos(angle * 7);
-      }
-      radii.push(r);
-    }
-    return radii;
-  }
-
-  var stageA = stageRadii(0);
-  var stageB = stageRadii(1);
-  var stageC = stageRadii(2);
-  var hues = [150, 172, 198];
+  var CX = 300, CY = 300, BASE = 175, POINTS = 60;
 
   function lerp(a, b, t) { return a + (b - a) * t; }
 
-  function radiiToPoints(radii, scale) {
-    scale = scale || 1;
+  function blobPoints(radiusFn) {
     var pts = [];
-    for (var i = 0; i < radii.length; i++) {
-      var angle = (i / radii.length) * Math.PI * 2;
-      var r = radii[i] * scale;
+    for (var i = 0; i < POINTS; i++) {
+      var angle = (i / POINTS) * Math.PI * 2;
+      var r = radiusFn(angle);
       pts.push([CX + Math.cos(angle) * r, CY + Math.sin(angle) * r]);
     }
     return pts;
   }
+
+  function spirulinaPoints() {
+    var half = POINTS / 2;
+    var turns = 4;
+    var amp = 60;
+    var width = 320;
+    var maxThickness = 66;
+    var top = [];
+    var bottom = [];
+    var eps = 0.001;
+
+    function centerline(s) {
+      return [CX - width / 2 + width * s, CY + amp * Math.sin(s * turns * Math.PI * 2)];
+    }
+
+    for (var k = 0; k < half; k++) {
+      var s = k / (half - 1);
+      var c = centerline(s);
+      var c1 = centerline(Math.max(0, s - eps));
+      var c2 = centerline(Math.min(1, s + eps));
+      var dx = c2[0] - c1[0];
+      var dy = c2[1] - c1[1];
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var nx = -dy / len;
+      var ny = dx / len;
+      var thickness = maxThickness * (0.3 + 0.7 * Math.sin(Math.PI * s));
+      top.push([c[0] + nx * thickness / 2, c[1] + ny * thickness / 2]);
+      bottom.push([c[0] - nx * thickness / 2, c[1] - ny * thickness / 2]);
+    }
+
+    return top.concat(bottom.reverse());
+  }
+
+  var stageA = blobPoints(function (angle) { return BASE + 10 * Math.sin(angle * 2); });
+  var stageB = blobPoints(function (angle) { return BASE * 0.95 + 38 * Math.sin(angle * 5); });
+  var stageC = spirulinaPoints();
+  var hues = [150, 170, 190];
 
   function catmullRomPath(points) {
     var n = points.length;
@@ -315,10 +331,25 @@
     return d + "Z";
   }
 
-  function blend(stageFrom, stageTo, t) {
+  function blendPoints(ptsFrom, ptsTo, t) {
     var out = [];
-    for (var i = 0; i < POINTS; i++) out.push(lerp(stageFrom[i], stageTo[i], t));
+    for (var i = 0; i < POINTS; i++) {
+      out.push([lerp(ptsFrom[i][0], ptsTo[i][0], t), lerp(ptsFrom[i][1], ptsTo[i][1], t)]);
+    }
     return out;
+  }
+
+  function centroidOf(points) {
+    var sx = 0, sy = 0;
+    for (var i = 0; i < points.length; i++) { sx += points[i][0]; sy += points[i][1]; }
+    return [sx / points.length, sy / points.length];
+  }
+
+  function scaleFromCentroid(points, factor) {
+    var c = centroidOf(points);
+    return points.map(function (p) {
+      return [c[0] + (p[0] - c[0]) * factor, c[1] + (p[1] - c[1]) * factor];
+    });
   }
 
   function activeWord(progress) {
@@ -330,21 +361,19 @@
   var lastStageIdx = -1;
 
   function render(progress) {
-    var radii, hue;
+    var pts, hue;
     if (progress <= 0.5) {
       var t = progress / 0.5;
-      radii = blend(stageA, stageB, t);
+      pts = blendPoints(stageA, stageB, t);
       hue = lerp(hues[0], hues[1], t);
     } else {
       var t2 = (progress - 0.5) / 0.5;
-      radii = blend(stageB, stageC, t2);
+      pts = blendPoints(stageB, stageC, t2);
       hue = lerp(hues[1], hues[2], t2);
     }
 
-    var pts = radiiToPoints(radii);
-    var d = catmullRomPath(pts);
-    pathEl.setAttribute("d", d);
-    glowPathEl.setAttribute("d", catmullRomPath(radiiToPoints(radii, 1.06)));
+    pathEl.setAttribute("d", catmullRomPath(pts));
+    glowPathEl.setAttribute("d", catmullRomPath(scaleFromCentroid(pts, 1.06)));
 
     stop1.setAttribute("stop-color", "hsl(" + (hue - 15) + ", 75%, 84%)");
     stop2.setAttribute("stop-color", "hsl(" + hue + ", 55%, 55%)");
@@ -352,12 +381,13 @@
 
     var dotCount = Math.round(lerp(3, 14, progress));
     if (dotCount !== dotsGroup.childElementCount) {
+      var centroid = centroidOf(pts);
       dotsGroup.innerHTML = "";
       for (var i = 0; i < dotCount; i++) {
-        var a = (i / dotCount) * Math.PI * 2 + 0.4;
-        var rr = BASE * 0.45 * (0.4 + 0.6 * Math.sin(i * 2.1));
-        var cx = CX + Math.cos(a) * rr;
-        var cy = CY + Math.sin(a) * rr;
+        var boundary = pts[Math.floor((i / dotCount) * pts.length)];
+        var pull = 0.25 + 0.35 * Math.sin(i * 2.1);
+        var cx = centroid[0] + (boundary[0] - centroid[0]) * pull;
+        var cy = centroid[1] + (boundary[1] - centroid[1]) * pull;
         var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circle.setAttribute("cx", cx.toFixed(1));
         circle.setAttribute("cy", cy.toFixed(1));
