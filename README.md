@@ -34,3 +34,9 @@ Then open http://localhost:4173 in a browser.
 All section content lives directly in `index.html`, split into clearly labeled
 `<section>` blocks (Research, Fashion, Modeling, Photography, About, Contact).
 Colors and fonts are defined as CSS variables at the top of `styles.css`.
+
+**After editing `script.js`**, bump the version query string on its `<script>`
+tag in `index.html` (e.g. `script.js?v=3` → `?v=4`). GitHub Pages' CDN caches
+`script.js` aggressively by filename, so without a new version string, visitors
+who already loaded the page can keep seeing the old JS behavior even after a
+hard refresh.
