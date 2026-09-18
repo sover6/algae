@@ -71,7 +71,7 @@
 
   /* ---------------------------------------------------------------
      Living algae canvas: soft, blurred cell-like blobs that drift,
-     morph their outline, and slowly shift bloom color — a generative
+     morph their outline, and slowly shift color — a generative
      stand-in for the organism itself, not a literal photo. Pauses
      off-screen / hidden tab to stay cheap, and reduces to one static
      frame under prefers-reduced-motion.
@@ -239,4 +239,166 @@
       });
     }
   }
+})();
+
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------------
+     Scroll-driven algae morph: a single organic shape that smoothly
+     reshapes from a single cell, to a colony, to a cultivated culture
+     as the user scrolls through a tall sticky section — literally
+     "changing" as you scroll, rather than just drifting.
+  ----------------------------------------------------------------*/
+  var section = document.getElementById("morph");
+  var pathEl = document.getElementById("morphPath");
+  var glowPathEl = document.getElementById("morphGlowPath");
+  var dotsGroup = document.getElementById("morphDots");
+  var stop1 = document.getElementById("morphStop1");
+  var stop2 = document.getElementById("morphStop2");
+  var stop3 = document.getElementById("morphStop3");
+  var words = document.querySelectorAll(".morph-word");
+  if (!section || !pathEl) return;
+
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var CX = 300, CY = 300, BASE = 175, POINTS = 16;
+
+  function stageRadii(stage) {
+    var radii = [];
+    for (var i = 0; i < POINTS; i++) {
+      var angle = (i / POINTS) * Math.PI * 2;
+      var r;
+      if (stage === 0) {
+        r = BASE + 10 * Math.sin(angle * 2);
+      } else if (stage === 1) {
+        r = BASE * 0.95 + 38 * Math.sin(angle * 5);
+      } else {
+        r = BASE * 1.05 + 58 * Math.sin(angle * 3 + 0.6) + 26 * Math.cos(angle * 7);
+      }
+      radii.push(r);
+    }
+    return radii;
+  }
+
+  var stageA = stageRadii(0);
+  var stageB = stageRadii(1);
+  var stageC = stageRadii(2);
+  var hues = [150, 172, 198];
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function radiiToPoints(radii, scale) {
+    scale = scale || 1;
+    var pts = [];
+    for (var i = 0; i < radii.length; i++) {
+      var angle = (i / radii.length) * Math.PI * 2;
+      var r = radii[i] * scale;
+      pts.push([CX + Math.cos(angle) * r, CY + Math.sin(angle) * r]);
+    }
+    return pts;
+  }
+
+  function catmullRomPath(points) {
+    var n = points.length;
+    var d = "M " + points[0][0].toFixed(2) + " " + points[0][1].toFixed(2) + " ";
+    for (var i = 0; i < n; i++) {
+      var p0 = points[(i - 1 + n) % n];
+      var p1 = points[i];
+      var p2 = points[(i + 1) % n];
+      var p3 = points[(i + 2) % n];
+      var c1x = p1[0] + (p2[0] - p0[0]) / 6;
+      var c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      var c2x = p2[0] - (p3[0] - p1[0]) / 6;
+      var c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += "C " + c1x.toFixed(2) + " " + c1y.toFixed(2) + ", " + c2x.toFixed(2) + " " + c2y.toFixed(2) + ", " + p2[0].toFixed(2) + " " + p2[1].toFixed(2) + " ";
+    }
+    return d + "Z";
+  }
+
+  function blend(stageFrom, stageTo, t) {
+    var out = [];
+    for (var i = 0; i < POINTS; i++) out.push(lerp(stageFrom[i], stageTo[i], t));
+    return out;
+  }
+
+  function activeWord(progress) {
+    if (progress < 0.32) return 0;
+    if (progress < 0.68) return 1;
+    return 2;
+  }
+
+  var lastStageIdx = -1;
+
+  function render(progress) {
+    var radii, hue;
+    if (progress <= 0.5) {
+      var t = progress / 0.5;
+      radii = blend(stageA, stageB, t);
+      hue = lerp(hues[0], hues[1], t);
+    } else {
+      var t2 = (progress - 0.5) / 0.5;
+      radii = blend(stageB, stageC, t2);
+      hue = lerp(hues[1], hues[2], t2);
+    }
+
+    var pts = radiiToPoints(radii);
+    var d = catmullRomPath(pts);
+    pathEl.setAttribute("d", d);
+    glowPathEl.setAttribute("d", catmullRomPath(radiiToPoints(radii, 1.06)));
+
+    stop1.setAttribute("stop-color", "hsl(" + (hue - 15) + ", 75%, 84%)");
+    stop2.setAttribute("stop-color", "hsl(" + hue + ", 55%, 55%)");
+    stop3.setAttribute("stop-color", "hsl(" + (hue + 20) + ", 60%, 20%)");
+
+    var dotCount = Math.round(lerp(3, 14, progress));
+    if (dotCount !== dotsGroup.childElementCount) {
+      dotsGroup.innerHTML = "";
+      for (var i = 0; i < dotCount; i++) {
+        var a = (i / dotCount) * Math.PI * 2 + 0.4;
+        var rr = BASE * 0.45 * (0.4 + 0.6 * Math.sin(i * 2.1));
+        var cx = CX + Math.cos(a) * rr;
+        var cy = CY + Math.sin(a) * rr;
+        var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", cx.toFixed(1));
+        circle.setAttribute("cy", cy.toFixed(1));
+        circle.setAttribute("r", (6 + (i % 3) * 2).toFixed(1));
+        circle.setAttribute("fill", "hsla(" + (hue + 10) + ", 70%, 88%, 0.55)");
+        dotsGroup.appendChild(circle);
+      }
+    }
+
+    var stageIdx = activeWord(progress);
+    if (stageIdx !== lastStageIdx) {
+      words.forEach(function (w) {
+        w.classList.toggle("is-active", Number(w.getAttribute("data-stage")) === stageIdx);
+      });
+      lastStageIdx = stageIdx;
+    }
+  }
+
+  if (reduceMotion) {
+    render(0.5);
+    return;
+  }
+
+  var ticking = false;
+  function onScroll() {
+    if (!ticking) {
+      window.requestAnimationFrame(update);
+      ticking = true;
+    }
+  }
+
+  function update() {
+    var rect = section.getBoundingClientRect();
+    var scrollable = rect.height - window.innerHeight;
+    var progress = scrollable > 0 ? (-rect.top) / scrollable : 0;
+    progress = Math.max(0, Math.min(1, progress));
+    render(progress);
+    ticking = false;
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
+  update();
 })();
