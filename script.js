@@ -71,7 +71,7 @@
 
   /* ---------------------------------------------------------------
      Living algae canvas: soft, blurred cell-like blobs that drift,
-     morph their outline, and slowly shift color — a generative
+     morph their outline, and slowly shift color - a generative
      stand-in for the organism itself, not a literal photo. Pauses
      off-screen / hidden tab to stay cheap, and reduces to one static
      frame under prefers-reduced-motion.
@@ -247,7 +247,7 @@
   /* ---------------------------------------------------------------
      Scroll-driven algae morph: a single organic shape that smoothly
      reshapes from one cell, to many, to a colony as the user scrolls
-     through a tall sticky section — literally "changing" as you
+     through a tall sticky section - literally "changing" as you
      scroll, rather than just drifting. Doubles as a small motto:
      one -> many -> a colony.
   ----------------------------------------------------------------*/

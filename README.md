@@ -1,17 +1,17 @@
-# Shoshana Over — Portfolio Site
+# Shoshana Over - Portfolio Site
 
 A single-page portfolio site centered on algae's contribution to sustainability across
 research, fashion, and photography.
 
 ## Structure
 
-- `index.html` — all page content and section markup
-- `styles.css` — theme, layout, animations
-- `script.js` — mobile nav toggle, scroll-reveal, and parallax scroll effect
-- `assets/resume/` — downloadable resume PDF
-- `assets/img/` — image assets (photography section, once ready)
+- `index.html` - all page content and section markup
+- `styles.css` - theme, layout, animations
+- `script.js` - mobile nav toggle, scroll-reveal, and parallax scroll effect
+- `assets/resume/` - downloadable resume PDF
+- `assets/img/` - image assets (photography section, once ready)
 
-No build step — plain HTML/CSS/JS, safe to hand-edit directly.
+No build step - plain HTML/CSS/JS, safe to hand-edit directly.
 
 ## Local preview
 
