@@ -377,6 +377,33 @@ p { margin: 0 0 1em; color: var(--ink-soft); }
   margin-bottom: 18px;
 }
 
+.card-photos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+}
+.card-photos figure {
+  margin: 0;
+}
+.card-photos img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+.card-photos figcaption {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  margin-top: 6px;
+  line-height: 1.35;
+}
+@media (max-width: 520px) {
+  .card-photos { grid-template-columns: 1fr; }
+}
+
 .card-footnote {
   font-size: 0.88rem;
   color: var(--ink-soft);
