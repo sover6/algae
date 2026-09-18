@@ -380,28 +380,96 @@ p { margin: 0 0 1em; color: var(--ink-soft); }
 .card-photos {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 20px 0;
+  gap: 14px;
+  margin: 22px 0;
 }
-.card-photos figure {
+
+.photo-card {
+  position: relative;
   margin: 0;
-}
-.card-photos img {
-  width: 100%;
   aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  isolation: isolate;
   background: var(--bg-alt);
+  box-shadow: 0 14px 30px -18px rgba(13, 43, 36, 0.45);
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
 }
-.card-photos figcaption {
-  font-size: 0.76rem;
-  color: var(--ink-soft);
-  margin-top: 6px;
+
+.photo-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.photo-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(11, 34, 29, 0) 42%, rgba(6, 22, 19, 0.82) 100%);
+  pointer-events: none;
+}
+
+.photo-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+
+.photo-card:hover,
+.photo-card:focus-within {
+  box-shadow: 0 20px 40px -16px rgba(31, 111, 92, 0.5);
+  transform: translateY(-2px);
+}
+.photo-card:hover img,
+.photo-card:focus-within img {
+  transform: scale(1.07);
+}
+
+.photo-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: rgba(13, 43, 36, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.photo-card figcaption {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 11px;
+  z-index: 2;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 500;
   line-height: 1.35;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
+
 @media (max-width: 520px) {
   .card-photos { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-card, .photo-card img { transition: none; }
 }
 
 .card-footnote {
