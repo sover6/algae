@@ -246,11 +246,10 @@
 
   /* ---------------------------------------------------------------
      Scroll-driven algae morph: a single organic shape that smoothly
-     reshapes from a single cell, to a colony, to a coiled Spirulina
-     filament as the user scrolls through a tall sticky section —
-     literally "changing" as you scroll, rather than just drifting.
-     Each stage is stored as a raw point array (not a radius profile),
-     so the final stage can be an elongated coil rather than a blob.
+     reshapes from one cell, to many, to a colony as the user scrolls
+     through a tall sticky section — literally "changing" as you
+     scroll, rather than just drifting. Doubles as a small motto:
+     one -> many -> a colony.
   ----------------------------------------------------------------*/
   var section = document.getElementById("morph");
   var pathEl = document.getElementById("morphPath");
@@ -277,42 +276,10 @@
     return pts;
   }
 
-  function spirulinaPoints() {
-    var half = POINTS / 2;
-    var turns = 4;
-    var amp = 60;
-    var width = 320;
-    var maxThickness = 66;
-    var top = [];
-    var bottom = [];
-    var eps = 0.001;
-
-    function centerline(s) {
-      return [CX - width / 2 + width * s, CY + amp * Math.sin(s * turns * Math.PI * 2)];
-    }
-
-    for (var k = 0; k < half; k++) {
-      var s = k / (half - 1);
-      var c = centerline(s);
-      var c1 = centerline(Math.max(0, s - eps));
-      var c2 = centerline(Math.min(1, s + eps));
-      var dx = c2[0] - c1[0];
-      var dy = c2[1] - c1[1];
-      var len = Math.sqrt(dx * dx + dy * dy) || 1;
-      var nx = -dy / len;
-      var ny = dx / len;
-      var thickness = maxThickness * (0.3 + 0.7 * Math.sin(Math.PI * s));
-      top.push([c[0] + nx * thickness / 2, c[1] + ny * thickness / 2]);
-      bottom.push([c[0] - nx * thickness / 2, c[1] - ny * thickness / 2]);
-    }
-
-    return top.concat(bottom.reverse());
-  }
-
   var stageA = blobPoints(function (angle) { return BASE + 10 * Math.sin(angle * 2); });
-  var stageB = blobPoints(function (angle) { return BASE * 0.95 + 38 * Math.sin(angle * 5); });
-  var stageC = spirulinaPoints();
-  var hues = [150, 170, 190];
+  var stageB = blobPoints(function (angle) { return BASE * 1.05 + 58 * Math.sin(angle * 3 + 0.6) + 26 * Math.cos(angle * 7); });
+  var stageC = blobPoints(function (angle) { return BASE * 0.95 + 38 * Math.sin(angle * 5); });
+  var hues = [148, 176, 156];
 
   function catmullRomPath(points) {
     var n = points.length;
